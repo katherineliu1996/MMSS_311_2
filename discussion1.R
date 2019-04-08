@@ -1,4 +1,4 @@
-setwd("Desktop/Spring2019/MMSS311-2/")
+setwd("Desktop/Spring2019/MMSS311-2/MMSS_311_2")
 
 packages <- c("dplyr", "ggplot2", "lubridate", "stringr", "foreign")
 
