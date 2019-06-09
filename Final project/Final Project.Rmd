@@ -2,9 +2,17 @@
 title: "Final project"
 author: "Katherine Liu"
 date: "6/10/2019"
+header-includes:
+    - \usepackage{setspace}\doublespacing
 output: pdf_document
 ---
 
+#Introductions
+
+  The trade war between the United States and China has become one of the most crucial
+topics in the world’s economy, which involves the tariffs placed by both the US and China. The US-China trade war has created a sense of uncertainty for the financial market, which has reduced investors’ confidence towards the financial market. Since the trade war has a great impact on the world’s economy, it has been covered by various news sources, this project specifically focuses on New York Times and People's Daily, which is refered as People.cn in the following sections.
+
+#Package used in this project
 ```{r loadlib, echo=T, results='hide', message=F, warning=F}
 # load all required packages
 library(newsanchor)
@@ -21,9 +29,9 @@ library(tm)
 library(tidyr)
 ```
 
-## Webscrape New York Times articles and people.cn articles (See Final Project Code)
+# Webscrape New York Times articles and people.cn articles (See Final Project Code)
 
-To make sure that the news are covering the same topics, I selected a period of time for both news source. Since the news are usually reported in a timely manner, selecting the same period of time will ensure the topics and issues covered are the same for both news sources. For web scraping articles from New York Times, I used the News API and the code from Jan Dix (Dix, Jan. Scrape New York Times Online Articles. March 05, 2019. https://cran.r-project.org/web/packages/newsanchor/vignettes/scrape-nyt.html.).
+  To make sure that the news are covering the same topics, I selected a period of time for both news source. Since the news are usually reported in a timely manner, selecting the same period of time will ensure the topics and issues covered are the same for both news sources. For web scraping articles from New York Times, I used the News API and the code from Jan Dix (Dix, Jan. Scrape New York Times Online Articles. March 05, 2019. https://cran.r-project.org/web/packages/newsanchor/vignettes/scrape-nyt.html.).
 
 #Load articles from NYT and people.cn articles
 
@@ -61,23 +69,9 @@ ppltf_idf <- ppldocsTidy %>%
 ```
 
 #Word Frequency
-```{r}
-# top 20 most commonly occurring terms across news in NYT
-nytdocsTidy %>%
-  group_by(term) %>% 
-  summarize(frequency = sum(count)) %>%
-  arrange(desc(frequency)) %>% 
-  top_n(20)
-# top 20 most commonly occurring terms across news in People.cn
-ppldocsTidy %>%
-  group_by(term) %>% 
-  summarize(frequency = sum(count)) %>%
-  arrange(desc(frequency)) %>% 
-  top_n(20)
 
-```
 ```{r, warning= FALSE}
-#plot the frequency
+# top 20 most commonly occurring terms across news in NYT
 nytdocsTidy %>% 
   group_by(term) %>%
   summarize(freq = sum(count)) %>%
@@ -87,6 +81,7 @@ nytdocsTidy %>%
   geom_bar(stat="identity") +
   theme(axis.text.x = element_text(angle=45, hjust=1)) + xlab("word") +
   ggtitle("Frequency of word use for New York Times coverage of Trade War")
+# top 20 most commonly occurring terms across news in People.cn
 ppldocsTidy %>% 
   group_by(term) %>%
   summarize(freq = sum(count)) %>%
@@ -99,10 +94,10 @@ ppldocsTidy %>%
 
 ```
 
+  We can see that the New York Times frequently uses words such as "Trump," "state," "president," and "deal." These choices of words imply that the New York Times focuses more on the political impact of the trade war and Trump's impact on the trade war. One possible reason might be that as a economically more developed country, the United States is more interested in the political implication of the trade war than the economy side. Another possible reason might be that Trump is seeking to use his strong position in the trade war as a way to promote himself in the 2020 United States presidential election. 
+  However, the People's Daily uses word such as "economy" and "develop," which indicates that the Chinese news source focuses more on the effect of trade war on China's economy. Additionally we can also observe that the Chinese news source also focuses on Huawei and the technology side of the trade war, which is relatively less important for the New York Times.
 
-We can see that the New York Times focuses more on the political impact of the trade war and Trump's impact on the trade war whereas the Chinese news source focuses more on China's economy. The Chinese news source also focuses on Huawei and the technology side of the trade war, which is relatively not that important for the New York Times.
-
-##  Relationships between words: n-grams
+#  Relationships between words: n-grams
 ```{r, warning= FALSE}
 ## for New York Times articles
 articles <- articles %>%
@@ -166,7 +161,7 @@ pplbigram_counts %>%
 
 ```
 
-Similar to the previous discovery, we can observe that the news in New York Times focus more on the political side of Trade War.
+  Similar to the previous discovery, we can observe that the news in New York Times focus more on the political side of Trade War by the frequent use of phrases such as "Trump administration," "president Trump," and "White House." However, the People's Daily seems to take on a more global perspective of the trade war by mentioning "global supply" and "Arab countries."
 
 
 #Sentiment Analysis
@@ -229,9 +224,11 @@ ggplot(ppl_sentiment, aes(date, sentiment)) +
 ```
 
 
-The reason that I decided to use the count of the sentiment rather than use the average method is that the number of articles and the length of the articles are significant. We are more likely to see an increase in the number of articles or the length of the articles when important changes happen and I want to capture this effect. Through the sentiment analysis, we can find out that interestingly, the news coverage in People.cn is more positive in its descriptive tone while that in the New York Times is more negative. One possible reason could be that the Chinese government wants to assure the public that the Trade War situation is not that bad through news propaganda.
+The reason that I decided to use the count of the sentiment rather than use the average method is that the number of articles and the length of the articles are significant. We are more likely to see an increase in the number of articles or the length of the articles when important changes happen and I want to capture this effect. Through the sentiment analysis, we can find out that interestingly, the news coverage in People.cn is more positive in its descriptive tone while that in the New York Times is more negative. Since there is no freedom of speech in Chine, one possible reason could be that the Chinese government wants to assure the public that the Trade War situation is not as bad through news propaganda. Furthermore, spreading positive emotions in the news might increase the public's desire to consume, which will positively influence the Chinese economy.
 
+#Conclusions
 
+From the analysis, we can observe that there is a huge difference between the news coverage of the trade war from the New York Times and the People's Daily. Specifically, we can observe that the New York Times focus more on the political implications of the trade war whereas People's Daily is more concerned with the economic development of China with a specific focus on its leading technology firm Huawei. In addition, we observe a huge difference in the tone of the news coverage through using sentiment analysis. The sentiment is mostly negative for the New York Times news, but the People's Daily's news is more positively toned. One possible reason is that the Chinese government is taking control of the media and wants it to spread a positive sentiment to assure the citizens.
 
 
 
