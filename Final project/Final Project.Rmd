@@ -1,7 +1,7 @@
 ---
 title: "Final project"
 author: "Katherine Liu"
-date: "6/6/2019"
+date: "6/10/2019"
 output: pdf_document
 ---
 
@@ -98,7 +98,9 @@ ppldocsTidy %>%
   ggtitle("Frequency of word use for Peoples.cn coverage of Trade War")
 
 ```
-**We can see that the New York Times focuses more on the political impact of the trade war and Trump's impact on the trade war whereas the Chinese news source focuses more on China's economy. The Chinese news source also focuses on Huawei and the technology side of the trade war, which is relatively not that important for the New York Times.**
+
+
+We can see that the New York Times focuses more on the political impact of the trade war and Trump's impact on the trade war whereas the Chinese news source focuses more on China's economy. The Chinese news source also focuses on Huawei and the technology side of the trade war, which is relatively not that important for the New York Times.
 
 ##  Relationships between words: n-grams
 ```{r, warning= FALSE}
@@ -164,7 +166,7 @@ pplbigram_counts %>%
 
 ```
 
-**Similar to the previous discovery, we can observe that the news in New York Times focus more on the political side of Trade War.**
+Similar to the previous discovery, we can observe that the news in New York Times focus more on the political side of Trade War.
 
 
 #Sentiment Analysis
@@ -227,7 +229,7 @@ ggplot(ppl_sentiment, aes(date, sentiment)) +
 ```
 
 
-**The reason that I decided to use the count of the sentiment rather than use the average method is that the number of articles and the length of the articles are significant. We are more likely to see an increase in the number of articles or the length of the articles when important changes happen and I want to capture this effect. Through the sentiment analysis, we can find out that interestingly, the news coverage in People.cn is more positive in its descriptive tone while that in the New York Times is more negative. One possible reason could be that the Chinese government wants to assure the public that the Trade War situation is not that bad through news propaganda.**
+The reason that I decided to use the count of the sentiment rather than use the average method is that the number of articles and the length of the articles are significant. We are more likely to see an increase in the number of articles or the length of the articles when important changes happen and I want to capture this effect. Through the sentiment analysis, we can find out that interestingly, the news coverage in People.cn is more positive in its descriptive tone while that in the New York Times is more negative. One possible reason could be that the Chinese government wants to assure the public that the Trade War situation is not that bad through news propaganda.
 
 
 
