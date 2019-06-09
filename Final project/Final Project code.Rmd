@@ -1,0 +1,472 @@
+---
+title: "Final project"
+author: "Katherine Liu"
+date: "6/6/2019"
+output: pdf_document
+---
+
+```{r}
+# load all required packages
+library(newsanchor) # download newspaper articles
+library(robotstxt)  # get robots.txt
+library(httr)       # http requests
+library(rvest)      # web scraping tools
+library(dplyr)      # easy data frame manipulation
+library(stringr)    # string/character manipulation 
+library(tidytext)   # tidy text analysis
+library(xml2)
+library(tidyverse)
+library(lubridate)
+library(tm)
+library(tidyr)
+```
+
+## Webscrape New York Times articles (Code cited from Jan Dix "Scrape New York Times Online Articles")
+```{r, eval= FALSE}
+# get headlines published by the NYT
+response <- get_everything_all(query   = "China",
+                               sources = "the-new-york-times",
+                               from    = "2019-05-15",
+                               to      = "2019-06-03",
+                               api_key = "019cb0f0e4354164bcc3571344608257") 
+
+# extract response data frame
+articles <- response$results_df
+
+allowed <- paths_allowed(articles$url)
+all(allowed)
+
+get_article_body <- function (url) {
+  
+  # download article page
+  response <- GET(url)
+  
+  # check if request was successful
+  if (response$status_code != 200) return(NA)
+  
+  # extract html
+  html <- content(x        = response, 
+                  type     = "text", 
+                  encoding = "UTF-8")
+  
+  # parse html
+  parsed_html <- read_html(html)                   
+  
+  # define paragraph DOM selector
+  selector <- "article#story div.StoryBodyCompanionColumn div p"
+  
+  # parse content
+  parsed_html %>% 
+    html_nodes(selector) %>%      # extract all paragraphs within class 'article-section'
+    html_text() %>%               # extract content of the <p> tags
+    str_replace_all("\n", "") %>% # replace all line breaks
+    paste(collapse = " ")         # join all paragraphs into one string
+}
+
+# create new text column
+articles$body <- NA
+
+# initialize progress bar
+pb <- txtProgressBar(min     = 1, 
+                     max     = nrow(articles), 
+                     initial = 1, 
+                     style   = 3)
+
+# loop through articles and "apply" function
+for (i in 1:nrow(articles)) {
+  
+  # "apply" function to i url
+  articles$body[i] <- get_article_body(articles$url[i])
+  
+  # update progress bar
+  setTxtProgressBar(pb, i)
+  
+  # sleep for 1 sec
+  Sys.sleep(1)
+}
+
+write.csv(articles, "articles.csv", row.names=FALSE)
+```
+
+```{r}
+
+```
+
+
+## Webscrape people.cn articles 
+```{r, eval=FALSE}
+#create a list of urls 
+people.url <- c()
+for (i in c(7:20)){
+  num <- toString(i)
+  people.url <- c(people.url, paste("http://en.people.cn/business/index", num,".html", sep=""))
+}
+#Create a dataframe with url and headlines of the news articles.
+people.url.list <- c()
+people.hdl.list <- c()
+url7read <- read_html(people.url[1])
+vignette("selectorgadget")
+people.article.url<-url7read %>%
+  html_nodes('h3 a') %>%
+  html_attr('href')
+
+people.article.hdl<-url7read %>%
+  html_nodes('h3') %>%
+  html_text
+people.article.hdl
+for (i in c(1:10)){
+  people.url.list<-c(people.url.list, people.article.url[i])
+  people.hdl.list<-c(people.hdl.list, people.article.hdl[i])
+}
+
+for(i in c(2:14)){
+  urlread <- read_html(people.url[i])
+  vignette("selectorgadget")
+  article.url <- urlread %>%
+    html_nodes('h3 a') %>%
+    html_attr('href')
+  article.hdl <- urlread %>%
+    html_nodes('h3') %>%
+    html_text
+  for (j in c(1:10)){
+    people.url.list<-c(people.url.list, article.url[j])
+    people.hdl.list<-c(people.hdl.list, article.hdl[j])
+  }
+}
+
+df_people <- data.frame(
+  url = people.url.list,
+  Headline = people.hdl.list
+)
+
+df_people<-df_people%>%
+  mutate(url = paste("http://en.people.cn/",url, sep=""))
+# Create a overview of the dataframe
+head(df_people)
+df_people <- df_people %>%
+  filter(grepl("US", Headline) | grepl("U.S.", Headline) | grepl("America", Headline) | grepl("Trump", Headline) | grepl("trade", Headline))
+nrow(df_people)
+#There are 54 observations
+#For these 54 observations, we are trying to obtain all the body of the news
+for (i in c(1:54)){
+  url <- df_people$url[i]
+  read.url <- read_html(url)
+  vignette("selectorgadget")
+  body <- read.url%>%
+    html_node(xpath = '//*[@id="p_content"]') %>%
+    html_text()
+  df_people$body[i] <-body
+}
+
+
+#Delete the entries where the body are n.a.
+df_people <- df_people %>%
+  filter(!is.na(body))
+#After deleting observations with no body text, we are left with 48 entries.
+nrow(df_people)
+
+for (i in c(1:48)){
+  url <- df_people$url[i]
+  read.url <- read_html(url)
+  vignette("selectorgadget")
+  time <- read.url%>%
+    html_node(xpath = '/html/body/div[4]/div[1]/div[1]') %>%
+    html_text()
+  #Save only the time format and get rid of all the rest useless
+  #information and the whitespaces
+  time<- str_remove(time, "People's Daily")
+  time<- str_remove(time, "Xinhua")
+  time<- str_remove(time, "People's Daily Online")
+  time<- str_remove(time, "China Daily")
+  time<- str_remove(time, "Online")
+  time<- str_remove(time, "Global Times")
+  time<- str_remove(time, "Chinadaily.com.cn")
+  time<- str_remove_all(time, "[()]")
+  time <- str_trim(time, side = c("both"))
+  df_people$time[i] <- time
+}
+#Fix the problem with entries that still have other words than the date and time
+df_people$time[22] <- "14:44, May 28, 2019"
+df_people$time[26] <- "13:58, May 27, 2019"
+df_people$time[28] <- "08:39, May 27, 2019"
+df_people$time[40] <- "14:50, May 22, 2019"
+df_people$time[41] <- "09:06, May 21, 2019"
+
+#Fix the time format for the time entries
+df_people$time<- str_replace_all(df_people$time, "[,]", " ")
+for (i in c(1:48)){
+  splittime<-strsplit(df_people$time[i], "[ ]")
+  hm<-sapply(splittime, "[[", 1)
+  splithm <- strsplit(hm, "[:]")
+  hour <- sapply(splithm, "[[", 1)
+  min <- sapply(splithm, "[[", 2)
+  month<-sapply(splittime, "[[", 3)
+  day <-sapply(splittime, "[[", 4)
+  year <-sapply(splittime, "[[", 6)
+  df_people$hourmin[i] <- hm
+  df_people$hour[i] <- hour
+  df_people$min[i] <- min
+  df_people$month[i] <- month
+  df_people$day[i] <- day
+  df_people$year[i] <- year
+}
+#Change the format for month to numeric
+df_people <- df_people %>%
+  mutate(month = ifelse(month=="June",6,5))
+#create the new date variable
+df_people$year <- as.numeric(df_people$year)
+df_people$day <- as.numeric(df_people$day)
+df_people$hour <- as.numeric(df_people$hour)
+df_people$min <- as.numeric(df_people$min)
+df_people <- df_people %>%
+  mutate(published_at = make_datetime(year, month, day, hour, min))
+write.csv(df_people, "people.csv", row.names=FALSE)
+```
+
+
+#Load articles from NYT and people.cn articles
+
+```{r}
+articles <- read.csv("articles.csv")[-1]
+df_people <- read.csv("people.csv")[-1]
+```
+
+
+#Pre-process the data for both NYT news articles and People.cn news articles
+```{r}
+#pre-process the NYT news articles
+nytdocs <- VCorpus(VectorSource(articles$body))
+# remove punctuation
+nytdocs <- tm_map(nytdocs, removePunctuation)
+# remove capitalization
+nytdocs <- tm_map(nytdocs, content_transformer(tolower)) 
+# remove stopwords
+nytdocs <- tm_map(nytdocs, removeWords, stopwords("en")) 
+# stem the documents
+nytdocs <- tm_map(nytdocs, stemDocument)
+# construct a document-term matrix
+nytdocsTDM <- DocumentTermMatrix(nytdocs)
+# removing sparse terms
+nytdocsTDM <- removeSparseTerms(nytdocsTDM, 0.99)
+# tidy the term matrix
+nytdocsTidy <- tidy(nytdocsTDM)
+# create a tf-idf matrix
+nyttf_idf <- nytdocsTidy %>% 
+  bind_tf_idf(term, document, count)
+```
+
+```{r}
+#pre-process the people.cn news articles
+ppldocs <- VCorpus(VectorSource(df_people$body))
+# remove punctuation
+ppldocs <- tm_map(ppldocs, removePunctuation)
+# remove capitalization
+ppldocs <- tm_map(ppldocs, content_transformer(tolower)) 
+# remove stopwords
+ppldocs <- tm_map(ppldocs, removeWords, stopwords("en")) 
+# stem the documents
+ppldocs <- tm_map(ppldocs, stemDocument)
+# construct a document-term matrix
+ppldocsTDM <- DocumentTermMatrix(ppldocs)
+# removing sparse terms
+ppldocsTDM <- removeSparseTerms(ppldocsTDM, 0.99)
+# tidy the term matrix
+ppldocsTidy <- tidy(ppldocsTDM)
+# create a tf-idf matrix
+ppltf_idf <- ppldocsTidy %>% 
+  bind_tf_idf(term, document, count)
+```
+
+#Word Frequency
+```{r}
+# top 20 most commonly occurring terms across news in NYT
+nytdocsTidy %>%
+  group_by(term) %>% 
+  summarize(frequency = sum(count)) %>%
+  arrange(desc(frequency)) %>% 
+  top_n(20)
+# top 20 most commonly occurring terms across news in People.cn
+ppldocsTidy %>%
+  group_by(term) %>% 
+  summarize(frequency = sum(count)) %>%
+  arrange(desc(frequency)) %>% 
+  top_n(20)
+
+```
+```{r}
+#plot the frequency
+nytdocsTidy %>% 
+  group_by(term) %>%
+  summarize(freq = sum(count)) %>%
+  top_n(20, freq) %>%
+  arrange(desc(freq)) %>%
+  ggplot(aes(reorder(term, -freq), freq)) + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=45, hjust=1)) + xlab("word") +
+  ggtitle("Frequency of word use for New York Times coverage of Trade War")
+ppldocsTidy %>% 
+  group_by(term) %>%
+  summarize(freq = sum(count)) %>%
+  top_n(20, freq) %>%
+  arrange(desc(freq)) %>%
+  ggplot(aes(reorder(term, -freq), freq)) + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=45, hjust=1)) + xlab("word") +
+  ggtitle("Frequency of word use for Peoples.cn coverage of Trade War")
+
+```
+**We can see that the New York Times focuses more on the political impact of the trade war and Trump's impact on the trade war whereas the Chinese news source focuses more on China's economy. The Chinese news source also focuses on Huawei and the technology side of the trade war, which is relatively not that important for the New York Times.**
+
+##  Relationships between words: n-grams
+```{r}
+## for New York Times articles
+articles <- articles %>%
+  select(-content)
+
+nyt_bigrams <- articles %>%
+  unnest_tokens(bigram, body, token = "ngrams", n = 2)
+
+#delete stop words
+nytbigrams_separated <- nyt_bigrams %>%
+  separate(bigram, c("word1", "word2"), sep = " ")
+
+nytbigrams_filtered <- nytbigrams_separated %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+
+
+nytbigrams_united <- nytbigrams_filtered %>%
+  unite(bigram, word1, word2, sep = " ")
+
+# new bigram counts:
+nytbigram_counts <- nytbigrams_united %>% 
+  count(bigram, sort = TRUE) %>%
+  mutate(freq = n)
+
+nytbigram_counts %>%
+  top_n(20, freq) %>%
+  arrange(desc(freq)) %>%
+  ggplot(aes(reorder(bigram, -freq), freq)) + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=45, hjust=1)) + xlab("2-word phrase") +
+  ggtitle("Frequency of 2-word phrase for New York Times")
+  
+
+## for people.cn articles
+
+ppl_bigrams <- df_people %>%
+  unnest_tokens(bigram, body, token = "ngrams", n = 2)
+
+#delete stop words
+pplbigrams_separated <- ppl_bigrams %>%
+  separate(bigram, c("word1", "word2"), sep = " ")
+
+pplbigrams_filtered <- pplbigrams_separated %>%
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word)
+
+
+
+pplbigrams_united <- pplbigrams_filtered %>%
+  unite(bigram, word1, word2, sep = " ")
+
+# new bigram counts:
+pplbigram_counts <- pplbigrams_united %>% 
+  count(bigram, sort = TRUE) %>%
+  mutate(freq = n)
+pplbigram_counts
+
+#Notice that the top three bigrams are codelines.
+#Therefore, we want to remove these top three 
+pplbigram_counts %>%
+  filter(! bigram %in% c('addthis_config data_track_addressbar', 'data_track_addressbar false', 'var addthis_config')) %>%
+  top_n(20, freq) %>%
+  arrange(desc(freq)) %>%
+  ggplot(aes(reorder(bigram, -freq), freq)) + 
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle=45, hjust=1)) + xlab("2-word phrase") +
+  ggtitle("Frequency of 2-word phrase for People.cn")
+
+```
+
+**Similar to the previous discovery, we can observe that the news in New York Times focus more on the political side of Trade War.**
+
+
+#Sentiment Analysis
+```{r}
+#generate date for nyt articles
+for (i in 1:nrow(articles)){
+  articles$time[i] = toString(articles$published_at[i])
+}
+
+articles <- articles %>%
+  mutate(datetime = mdy_hm(time),
+         date = format(datetime, format="%m-%d-%y")
+         )
+#generate date for people.cn articles
+
+df_people <- df_people %>%
+  mutate(datetime = as.Date(df_people$published_at),
+         date = format(datetime, format="%m-%d-%y")
+         )
+# Calculate the sentiments for NYT articles by date
+nyt_body <- articles %>%
+  select(body, date) %>%
+  filter((! is.na(body))) %>%
+  filter(body != "") %>%
+  mutate(text = toString(body))
+
+tidy_nyt <- nyt_body %>%
+  mutate(article_id = row_number()) %>%
+  unnest_tokens(word, text)
+
+nyt_sentiment <- tidy_nyt %>%
+  inner_join(get_sentiments("bing")) %>% 
+  count(date, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+nyt_sentiment
+ggplot(nyt_sentiment, aes(date, sentiment)) +
+  geom_col(show.legend = FALSE) +
+  theme(axis.text.x = element_text(angle=45, hjust=1))
+
+
+# Calculate the sentiments for People.cn articles by date
+ppl_body <- df_people %>%
+  select(body, date) %>%
+  filter((! is.na(body))) %>%
+  filter(body != "") %>%
+  mutate(text = toString(body))
+
+tidy_ppl <- ppl_body %>%
+  mutate(article_id = row_number()) %>%
+  unnest_tokens(word, text)
+
+ppl_sentiment <- tidy_ppl %>%
+  inner_join(get_sentiments("bing")) %>% 
+  count(date, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+ppl_sentiment
+
+ggplot(ppl_sentiment, aes(date, sentiment)) +
+  geom_col(show.legend = FALSE) +
+  theme(axis.text.x = element_text(angle=45, hjust=1))
+```
+
+
+** The reason that I decided to use the count of the sentiment rather than use the average method is that the number of articles and the length of the articles are significant. We are more likely to see an increase in the number of articles or the length of the articles when important changes happen and I want to capture this effect. Through the sentiment analysis, we can find out that interestingly, the news coverage in People.cn is more positive in its descriptive tone while that in the New York Times is more negative. One possible reason could be that the Chinese government wants to assure the public that the Trade War situation is not that bad through news propaganda.**
+
+
+
+
+
+
+
+
+
+
+
